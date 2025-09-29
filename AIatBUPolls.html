@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>Poll with Fixed Caps + Invisible Click Guard</title>
+<style>
+  :root{
+    /* Iframe geometry */
+    --poll-width: 900px;
+    --poll-height: 800px;
+
+    /* Decorative caps (viewport Y offsets) */
+    --q1-top: 135px;
+    --q2-top: 705px;
+    --q3-top: 890px;
+
+    /* Cap sizing / styling */
+    --cap-left: 20px;          /* from iframe’s LEFT edge */
+    --cap-height: 44px;
+    --cap-right-pad: 72px;     /* widen to the right */
+
+    /* Invisible click-guard (blocks the 3-dot menus) */
+    --guard-left-desktop: 760px;   /* 🔧 horizontal offset FROM iframe’s left */
+    --guard-left-mobile:  50px;    /* 🔧 mobile tweak */
+    --guard-width: 26px;           /* how wide to block; adjust if needed */
+
+    /* Set at runtime from iframe rect */
+    --iframe-left: 0px;
+  }
+
+  body{
+    background:#f5f5f5; margin:0; padding:1rem;
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
+    color:#2D2926;
+  }
+
+  /* Centered poll container */
+  .padlet-wrap{
+    position:relative; overflow:hidden;
+    width:100%; max-width:var(--poll-width); height:var(--poll-height);
+    margin:0 auto; border:1px solid rgba(0,0,0,.12); border-radius:6px; background:#fff;
+  }
+  .padlet-wrap iframe{
+    width:100%; height:100%; border:0; display:block;
+  }
+
+  /* ===== Fixed decorative caps (don’t scroll) ===== */
+  .qcap{
+    position: fixed; /* locked to viewport */
+    left: calc(var(--iframe-left) + var(--cap-left));
+    height: var(--cap-height);
+    padding: 8px var(--cap-right-pad) 8px 16px;
+    background:#fff; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,.15);
+    display:flex; align-items:center; font-weight:700; white-space:nowrap;
+    z-index: 2147483000;
+    pointer-events: none; /* purely decorative */
+  }
+  .qcap::after{
+    content:"›"; margin-left:8px; color:#cc0000; font-weight:600; font-size:18px; line-height:1;
+  }
+  .q1{ top: var(--q1-top); }
+  .q2{ top: var(--q2-top); }
+  .q3{ top: var(--q3-top); }
+
+  /* ===== Invisible click-guard (actually blocks the dots) ===== */
+  #dotGuard{
+    position: fixed;            /* truly locked */
+    top: 0;                     /* cover full viewport height */
+    height: 100vh;
+    left: calc(var(--iframe-left) + var(--guard-left-desktop));
+    width: var(--guard-width);
+    background: transparent;    /* invisible */
+    z-index: 2147483600;        /* above iframe */
+    pointer-events: auto;       /* intercept clicks */
+  }
+
+  @media (max-width: 768px){
+    .padlet-wrap{ height:700px; }
+    #dotGuard{
+      left: calc(var(--iframe-left) + var(--guard-left-mobile));
+      width: calc(var(--guard-width) + 6px); /* a touch wider on phones */
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="padlet-wrap">
+  <iframe id="pollFrame"
+          src="https://padlet.com/embed/4c875ythduh90mi1"
+          frameborder="0"
+          allow="camera;microphone;geolocation;display-capture;clipboard-write"></iframe>
+</div>
+
+<!-- Fixed, non-scrolling caps -->
+<div class="qcap q1">Question 1</div>
+<div class="qcap q2">Question 2</div>
+<div class="qcap q3">Question 3</div>
+
+<!-- Invisible, full-height click guard over the dot column -->
+<div id="dotGuard" aria-hidden="true"></div>
+
+<script>
+  (function(){
+    const iframe = document.getElementById('pollFrame');
+    const root = document.documentElement;
+
+    function syncLeft(){
+      if(!iframe) return;
+      const r = iframe.getBoundingClientRect();
+      root.style.setProperty('--iframe-left', r.left + 'px');
+    }
+
+    // Initial and on resize (horizontal centering may change)
+    syncLeft();
+    window.addEventListener('resize', syncLeft);
+
+    // Some LMS shells reflow late; do a few extra syncs after load
+    let n = 0;
+    const t = setInterval(() => { syncLeft(); if(++n > 20) clearInterval(t); }, 100);
+  })();
+</script>
+
+</body>
+</html>
